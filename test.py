@@ -2,8 +2,7 @@ import sqlite3
 import spacy
 
 # Initialize the chatbot
-print("Welcome to the Mining Industry Chatbot. You can ask questions about mining Acts, Rules, Regulations, "
-      "Guidelines, Methodology, or Corrigenda. Type 'exit' to quit.")
+print("Welcome to the Mining Industry Chatbot. You can ask questions about mining Acts, Rules, Regulations, Guidelines, Methodology, or Corrigenda. Type 'exit' to quit.")
 
 # Load spaCy model for better natural language understanding
 nlp = spacy.load("en_core_web_sm")
@@ -14,16 +13,6 @@ cursor = conn.cursor()
 
 # Define data categories
 categories = ['Acts', 'Rules', 'Regulations', 'Guidelines', 'Methodology', 'Corrigenda']
-
-# Create tables for each category (if not exists)
-for category in categories:
-      cursor.execute(f'''
-        CREATE TABLE IF NOT EXISTS {category} (
-            id INTEGER PRIMARY KEY,
-            title TEXT,
-            content TEXT
-        )
-    ''')
 
 # Sample data insertion for each category
 sample_data = {
@@ -117,17 +106,25 @@ def extract_keywords(query):
 
 
 # Function for searching and retrieving data
-def search_data(query):
+def search_data(query, category=None):
       keywords = extract_keywords(query)
       matched_results = []
 
-      # Search each category for matching keywords
-      for category in categories:
+      if category:
+            # If a specific category is specified, search only in that category
             query_str = f"SELECT title, content FROM {category} WHERE content LIKE ?"
             for keyword in keywords:
                   cursor.execute(query_str, ('%' + keyword + '%',))
                   results = cursor.fetchall()
                   matched_results.extend([(category, result[0], result[1]) for result in results])
+      else:
+            # Search in all categories if no specific category is provided
+            for cat in categories:
+                  query_str = f"SELECT title, content FROM {cat} WHERE content LIKE ?"
+                  for keyword in keywords:
+                        cursor.execute(query_str, ('%' + keyword + '%',))
+                        results = cursor.fetchall()
+                        matched_results.extend([(cat, result[0], result[1]) for result in results])
 
       return matched_results
 
@@ -147,15 +144,23 @@ while True:
             print("Chatbot: Goodbye! If you have more questions in the future, feel free to return.")
             break
 
-      matched_results = search_data(user_query)
+      # Check if the user query contains a category name
+      for cat in categories:
+            if cat.lower() in user_query:
+                  # Search in the specified category
+                  matched_results = search_data(user_query, category=cat)
+                  break
+      else:
+            # If no category is specified in the query, search in all categories
+            matched_results = search_data(user_query)
 
       if matched_results:
             # Group results by category and prioritize Acts and Rules
             result_dict = {}
             for category, title, content in matched_results:
                   if category not in result_dict:
-                        result_dict[category] = []
-                  result_dict[category].append((title, content))
+                        result_dict[category] = set()  # Use a set to prevent duplicate entries
+                  result_dict[category].add((title, content))
 
             # Display the most relevant information
             for category, results in result_dict.items():
@@ -163,7 +168,28 @@ while True:
                   for title, content in results:
                         print(f"Title: {title}\nContent: {content}\n")
       else:
-            print("Chatbot: I couldn't find any relevant information. Please try a different query or ask for assistance if needed.")
+            print("Chatbot: I couldn't find any relevant information. Would you like me to search in other categories for relevant information? (Yes/No)")
+            user_choice = input("You: ").strip().lower()
+            if user_choice == 'yes':
+                  # If the user wants to search in other categories, perform a broader search
+                  matched_results = search_data(user_query)
+                  if matched_results:
+                        # Display the most relevant information from all categories
+                        result_dict = {}
+                        for category, title, content in matched_results:
+                              if category not in result_dict:
+                                    result_dict[category] = set()  # Use a set to prevent duplicate entries
+                              result_dict[category].add((title, content))
+
+                        # Display the most relevant information
+                        for category, results in result_dict.items():
+                              print(f"Relevant {category}:")
+                              for title, content in results:
+                                    print(f"Title: {title}\nContent: {content}\n")
+                  else:
+                        print("Chatbot: I couldn't find any relevant information in other categories.")
+            else:
+                  print("Chatbot: If you have more specific queries or need assistance, feel free to ask.")
 
 # Close the database connection
 conn.close()
