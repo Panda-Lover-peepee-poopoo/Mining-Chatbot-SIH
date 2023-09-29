@@ -125,7 +125,7 @@ def main():
         if user_query in ['hi', 'hello', 'hey']:
             print("Chatbot: Hello! How can I assist you today?")
             continue
-        elif user_query in ['bye', 'goodbye']:
+        elif user_query in ['bye', 'goodbye', 'exit']:
             print("Chatbot: Goodbye! If you have more questions in the future, feel free to return.")
             break
 
