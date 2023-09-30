@@ -62,7 +62,7 @@ def extract_keywords(query):
 def search_data(user_query, cursor, max_results=5, target_category=None):
 
     keywords = extract_keywords(user_query)
-    print("Extracted Keywords:", keywords)
+    # print("Extracted Keywords:", keywords)
     matched_results = []
 
     # Build a dynamic SQL query with multiple OR conditions for each keyword
@@ -73,8 +73,8 @@ def search_data(user_query, cursor, max_results=5, target_category=None):
         query_str += " AND category = %s"
         params.append(target_category)
 
-    print("SQL Query:", query_str)
-    print("Parameters:", params)
+    # print("SQL Query:", query_str)
+    # print("Parameters:", params)
 
     cursor.execute(query_str, params)
     results = cursor.fetchall()
